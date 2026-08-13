@@ -1,8 +1,10 @@
+import { createClient } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
 import { Resend } from 'resend';
 
-// Clave API de Resend
-const resend = new Resend('re_QrL33u2e_5vDoCxpxyt8q9eCyCVUHChAT');
+// Inicializar clientes usando variables de entorno
+const resend = new Resend(process.env.RESEND_API_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -18,11 +20,30 @@ export default async function handler(req, res) {
   try {
     const idUnico = `DANZA-${dni}-${Date.now()}`;
 
-    // Generar el código QR en formato Base64 limpia
+    // 1. Guardar la inscripción en la base de datos de Supabase
+    // (Asegúrate de tener una tabla llamada 'inscripciones' en Supabase)
+    const { error: dbError } = await supabase
+      .from('inscripciones')
+      .insert([
+        { 
+          codigo_pase: idUnico, 
+          nombre, 
+          dni, 
+          email, 
+          categoria 
+        }
+      ]);
+
+    if (dbError) {
+      console.error("Error en Supabase:", dbError);
+      return res.status(500).json({ error: 'Error al guardar en la base de datos: ' + dbError.message });
+    }
+
+    // 2. Generar código QR
     const qrDataUrl = await QRCode.toDataURL(idUnico, { width: 300 });
     const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
 
-    // Enviar el correo electrónico
+    // 3. Enviar correo electrónico con Resend
     await resend.emails.send({
       from: 'Certamen de Danzas <onboarding@resend.dev>',
       to: [email],
@@ -38,9 +59,7 @@ export default async function handler(req, res) {
             <p style="margin: 5px 0;"><strong>Código de Pase:</strong> ${idUnico}</p>
           </div>
 
-          <p>Encontrarás tu pase con código QR adjunto a este correo. Guárdalo o descárgalo para mostrarlo en la entrada el día del evento.</p>
-          <br>
-          <p><em>¡Te esperamos en el escenario!</em></p>
+          <p>Encontrarás tu pase con código QR adjunto a este correo. Guárdalo para mostrarlo en la entrada.</p>
         </div>
       `,
       attachments: [
@@ -50,6 +69,14 @@ export default async function handler(req, res) {
         },
       ],
     });
+
+    return res.status(200).json({ mensaje: 'Inscripción exitosa y correo enviado' });
+
+  } catch (error) {
+    console.error("Error en el servidor:", error);
+    return res.status(500).json({ error: error.message || 'Error interno del servidor.' });
+  }
+}
 
     return res.status(200).json({ mensaje: 'Correo enviado correctamente' });
   } catch (error) {
