@@ -1,0 +1,59 @@
+import QRCode from 'qrcode';
+import { Resend } from 'resend';
+
+// Clave API de Resend
+const resend = new Resend('re_QrL33u2e_5vDoCxpxyt8q9eCyCVUHChAT');
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
+
+  const { nombre, dni, email, categoria } = req.body;
+
+  if (!nombre || !dni || !email) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+  }
+
+  try {
+    const idUnico = `DANZA-${dni}-${Date.now()}`;
+
+    // Generar el código QR en formato Base64 limpia
+    const qrDataUrl = await QRCode.toDataURL(idUnico, { width: 300 });
+    const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+
+    // Enviar el correo electrónico
+    await resend.emails.send({
+      from: 'Certamen de Danzas <onboarding@resend.dev>',
+      to: [email],
+      subject: `Confirmación de Inscripción - ${nombre}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+          <h2 style="color: #6f42c1;">¡Hola ${nombre}!</h2>
+          <p>Tu inscripción al <strong>Certamen de Danzas</strong> ha sido registrada con éxito.</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Categoría:</strong> ${categoria}</p>
+            <p style="margin: 5px 0;"><strong>DNI:</strong> ${dni}</p>
+            <p style="margin: 5px 0;"><strong>Código de Pase:</strong> ${idUnico}</p>
+          </div>
+
+          <p>Encontrarás tu pase con código QR adjunto a este correo. Guárdalo o descárgalo para mostrarlo en la entrada el día del evento.</p>
+          <br>
+          <p><em>¡Te esperamos en el escenario!</em></p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `Pase_QR_${dni}.png`,
+          content: base64Data,
+        },
+      ],
+    });
+
+    return res.status(200).json({ mensaje: 'Correo enviado correctamente' });
+  } catch (error) {
+    console.error("Error en el servidor:", error);
+    return res.status(500).json({ error: error.message || 'Error al generar el QR o enviar el correo.' });
+  }
+}
