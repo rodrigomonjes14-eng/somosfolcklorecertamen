@@ -62,8 +62,7 @@
         categoria: document.getElementById('categoria').value
       };
 
-      try {
-  // Esta es la línea a revisar
+     // Esta es la línea a revisar
   const respuesta = await fetch('/api/enviar-qr', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -91,4 +90,5 @@
     });
   </script>
 </body>
+</html>
 </html>
