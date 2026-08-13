@@ -63,11 +63,12 @@
       };
 
       try {
-        const respuesta = await fetch('/api/enviar-qr', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(datos)
-        });
+  // Esta es la línea a revisar
+  const respuesta = await fetch('/api/enviar-qr', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos)
+  });
 
         const resultado = await respuesta.json();
 
