@@ -11,9 +11,10 @@
     input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
     button { background: #6f42c1; color: white; border: none; padding: 12px; cursor: pointer; width: 100%; font-size: 16px; border-radius: 5px; }
     button:hover { background: #5a32a3; }
+    button:disabled { background: #a593c9; cursor: not-allowed; }
     #mensaje { margin-top: 20px; padding: 15px; display: none; border-radius: 5px; text-align: center; }
-    .exito { background-color: #d4edda; color: #155724; }
-    .error { background-color: #f8d7da; color: #721c24; }
+    .exito { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
   </style>
 </head>
 <body>
@@ -52,8 +53,11 @@
       
       const btn = document.getElementById('btnEnviar');
       const mensajeDiv = document.getElementById('mensaje');
+      
+      // Bloquear botón durante el envío
       btn.disabled = true;
       btn.innerText = "Procesando inscripción...";
+      mensajeDiv.style.display = 'none';
 
       const datos = {
         nombre: document.getElementById('nombre').value,
@@ -62,12 +66,12 @@
         categoria: document.getElementById('categoria').value
       };
 
-     // Esta es la línea a revisar
-  const respuesta = await fetch('/api/enviar-qr', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(datos)
-  });
+      try {
+        const respuesta = await fetch('/api/enviar-qr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datos)
+        });
 
         const resultado = await respuesta.json();
 
@@ -90,5 +94,4 @@
     });
   </script>
 </body>
-</html>
 </html>
